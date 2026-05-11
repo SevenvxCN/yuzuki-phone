@@ -2435,8 +2435,11 @@ export class WeiboView {
         this._refreshPostMediaUI(postId);
 
         try {
+            const storage = this.app?.storage || window.VirtualPhone?.storage || null;
+            const provider = String(storage?.get?.('phone-image-provider') || storage?.getItem?.('phone-image-provider') || 'novelai').toLowerCase();
             const result = await imageManager.generate({
                 app: 'weibo',
+                provider,
                 prompt: promptText
             });
             const imageUrl = String(result?.imageUrl || result?.imageData || '').trim();

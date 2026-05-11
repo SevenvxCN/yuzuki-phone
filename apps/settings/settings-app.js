@@ -2832,9 +2832,8 @@ export class SettingsApp {
                     modelSelect.innerHTML = '<option value="">选择模型</option>' + 
                         models.map(model => {
                             const title = String(model.title || model.model_name || '').trim();
-                            const hash = String(model.hash || '').trim();
-                            if (!title || !hash) return '';
-                            return `<option value="${this._escapeHtml(hash)}">${this._escapeHtml(title)}</option>`;
+                            if (!title) return '';
+                            return `<option value="${this._escapeHtml(title)}">${this._escapeHtml(title)}</option>`;
                         }).filter(Boolean).join('');
                 }
                 

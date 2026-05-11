@@ -1909,8 +1909,11 @@ renderChatRoom(chat) {
         this._refreshVisibleChatMessages(chatId);
 
         try {
+            const storage = this.app?.storage || window.VirtualPhone?.storage || null;
+            const provider = String(storage?.get?.('phone-image-provider') || storage?.getItem?.('phone-image-provider') || 'novelai').toLowerCase();
             const result = await imageManager.generate({
                 app: 'wechat',
+                provider,
                 prompt: promptText,
                 novelAIReferences
             });

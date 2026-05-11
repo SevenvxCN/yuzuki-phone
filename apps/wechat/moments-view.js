@@ -572,8 +572,11 @@ export class MomentsView {
         this._refreshMomentImageUI(momentId);
 
         try {
+            const storage = this.app?.storage || window.VirtualPhone?.storage || null;
+            const provider = String(storage?.get?.('phone-image-provider') || storage?.getItem?.('phone-image-provider') || 'novelai').toLowerCase();
             const result = await imageManager.generate({
                 app: 'wechat',
+                provider,
                 prompt: promptText
             });
             const imageUrl = String(result?.imageUrl || result?.imageData || '').trim();
