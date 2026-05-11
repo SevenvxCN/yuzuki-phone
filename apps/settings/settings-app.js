@@ -1375,6 +1375,7 @@ export class SettingsApp {
                         <select id="phone-image-provider" style="width: 150px; height: 30px; padding: 0 8px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 12px; background: #fafafa;">
                             <option value="novelai" ${provider === 'novelai' ? 'selected' : ''}>NovelAI / NAI</option>
                             <option value="siliconflow" ${provider === 'siliconflow' ? 'selected' : ''}>硅基流动</option>
+                            <option value="sd" ${provider === 'sd' ? 'selected' : ''}>Stable Diffusion</option>
                         </select>
                     </div>
                 </div>
@@ -1495,6 +1496,65 @@ export class SettingsApp {
                            value="${this._escapeHtml(siliconflowModel)}"
                            placeholder="Kwai-Kolors/Kolors"
                            style="width: 100%; height: 30px; padding: 0 8px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 12px; background: #fafafa; box-sizing: border-box; margin-top: 6px;">
+                </div>
+            </div>
+
+            <div class="setting-section" id="phone-image-sd-section" style="${provider === 'sd' ? '' : 'display: none;'}">
+                <div class="setting-section-title">🖼️ Stable Diffusion</div>
+
+                <div class="setting-item">
+                    <div class="setting-label">SD WebUI 服务地址</div>
+                    <div class="setting-desc">本地部署的 Stable Diffusion WebUI 地址，开启 API 后填入。</div>
+                    <input type="text" id="phone-image-sd-url"
+                           value="${this._escapeHtml(String(this.storage.get('phone-image-sd-url') || 'http://localhost:7860'))}"
+                           placeholder="http://localhost:7860"
+                           style="width: 100%; height: 30px; padding: 0 8px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 12px; background: #fafafa; box-sizing: border-box; margin-top: 6px;">
+                </div>
+
+                <div class="setting-item">
+                    <button id="phone-image-sd-refresh-models" class="phone-image-test-btn" style="width: 100%; height: 34px; border: none; border-radius: 8px; background: #3b82f6 !important; color: #fff !important; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        刷新模型列表
+                    </button>
+                    <div class="setting-desc" id="phone-image-sd-models-status" style="margin-top: 6px;">点击刷新获取当前 SD 模型列表。</div>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">选择模型</div>
+                    <select id="phone-image-sd-model" style="width: 100%; height: 30px; padding: 0 8px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 12px; background: #fafafa; box-sizing: border-box; margin-top: 6px;">
+                        <option value="">请先刷新模型列表</option>
+                    </select>
+                </div>
+
+                <div class="setting-item">
+                    <div class="setting-label">采样器</div>
+                    <select id="phone-image-sd-sampler" style="width: 100%; height: 30px; padding: 0 8px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 12px; background: #fafafa; box-sizing: border-box; margin-top: 6px;">
+                        <option value="Euler a" ${String(this.storage.get('phone-image-sd-sampler') || 'Euler a') === 'Euler a' ? 'selected' : ''}>Euler a</option>
+                        <option value="Euler" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'Euler' ? 'selected' : ''}>Euler</option>
+                        <option value="LMS" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'LMS' ? 'selected' : ''}>LMS</option>
+                        <option value="Heun" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'Heun' ? 'selected' : ''}>Heun</option>
+                        <option value="DPM2" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM2' ? 'selected' : ''}>DPM2</option>
+                        <option value="DPM2 a" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM2 a' ? 'selected' : ''}>DPM2 a</option>
+                        <option value="DPM++ 2S a" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM++ 2S a' ? 'selected' : ''}>DPM++ 2S a</option>
+                        <option value="DPM++ 2M" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM++ 2M' ? 'selected' : ''}>DPM++ 2M</option>
+                        <option value="DPM++ SDE" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM++ SDE' ? 'selected' : ''}>DPM++ SDE</option>
+                        <option value="DPM fast" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM fast' ? 'selected' : ''}>DPM fast</option>
+                        <option value="DPM adaptive" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM adaptive' ? 'selected' : ''}>DPM adaptive</option>
+                        <option value="LMS Karras" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'LMS Karras' ? 'selected' : ''}>LMS Karras</option>
+                        <option value="DPM2 Karras" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM2 Karras' ? 'selected' : ''}>DPM2 Karras</option>
+                        <option value="DPM2 a Karras" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM2 a Karras' ? 'selected' : ''}>DPM2 a Karras</option>
+                        <option value="DPM++ 2S a Karras" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM++ 2S a Karras' ? 'selected' : ''}>DPM++ 2S a Karras</option>
+                        <option value="DPM++ 2M Karras" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM++ 2M Karras' ? 'selected' : ''}>DPM++ 2M Karras</option>
+                        <option value="DPM++ SDE Karras" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DPM++ SDE Karras' ? 'selected' : ''}>DPM++ SDE Karras</option>
+                        <option value="DDIM" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'DDIM' ? 'selected' : ''}>DDIM</option>
+                        <option value="PLMS" ${String(this.storage.get('phone-image-sd-sampler') || '') === 'PLMS' ? 'selected' : ''}>PLMS</option>
+                    </select>
+                </div>
+
+                <div class="setting-item">
+                    <button id="phone-image-test-sd" class="phone-image-test-btn" style="width: 100%; height: 34px; border: none; border-radius: 8px; background: #10b981 !important; color: #fff !important; font-size: 13px; font-weight: 600; cursor: pointer;">
+                        测试 SD 生图连接
+                    </button>
+                    <div class="setting-desc" id="phone-image-test-sd-result" style="margin-top: 6px;">使用当前 SD 参数生成一张测试图。</div>
                 </div>
             </div>
 
@@ -2407,6 +2467,7 @@ export class SettingsApp {
         const imageProvider = document.getElementById('phone-image-provider');
         const imageNovelaiSection = document.getElementById('phone-image-novelai-section');
         const imageSiliconflowSection = document.getElementById('phone-image-siliconflow-section');
+        const imageSdSection = document.getElementById('phone-image-sd-section');
         const imageNovelaiSite = document.getElementById('phone-image-novelai-site');
         const imageNovelaiUrlRow = document.getElementById('phone-image-novelai-url-row');
         const imageNovelaiModel = document.getElementById('phone-image-novelai-model');
@@ -2424,6 +2485,7 @@ export class SettingsApp {
             const provider = String(imageProvider?.value || 'novelai').trim() || 'novelai';
             if (imageNovelaiSection) imageNovelaiSection.style.display = provider === 'novelai' ? '' : 'none';
             if (imageSiliconflowSection) imageSiliconflowSection.style.display = provider === 'siliconflow' ? '' : 'none';
+            if (imageSdSection) imageSdSection.style.display = provider === 'sd' ? '' : 'none';
         };
         const clampNumberInput = (input, fallback, min, max, integer = false) => {
             if (!input) return fallback;
@@ -2718,6 +2780,134 @@ export class SettingsApp {
             e.target.value = nextModel;
             await this.storage.set('phone-image-siliconflow-model', nextModel);
             await this.storage.set('image_generation_model', nextModel);
+        });
+
+        document.getElementById('phone-image-sd-url')?.addEventListener('change', async (e) => {
+            const value = String(e.target.value || '').trim();
+            await this.storage.set('phone-image-sd-url', value);
+        });
+
+        document.getElementById('phone-image-sd-model')?.addEventListener('change', async (e) => {
+            const value = String(e.target.value || '').trim();
+            await this.storage.set('phone-image-sd-model', value);
+        });
+
+        document.getElementById('phone-image-sd-sampler')?.addEventListener('change', async (e) => {
+            const value = String(e.target.value || '').trim() || 'Euler a';
+            e.target.value = value;
+            await this.storage.set('phone-image-sd-sampler', value);
+        });
+
+        document.getElementById('phone-image-sd-refresh-models')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const statusEl = document.getElementById('phone-image-sd-models-status');
+            const modelSelect = document.getElementById('phone-image-sd-model');
+            const setStatus = (text, color = '#666') => {
+                if (statusEl) {
+                    statusEl.textContent = text;
+                    statusEl.style.color = color;
+                }
+            };
+            const oldText = btn?.textContent || '刷新模型列表';
+            try {
+                const sdUrl = String(document.getElementById('phone-image-sd-url')?.value || '').trim() || 'http://localhost:7860';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '获取中...';
+                }
+                setStatus('正在连接 SD WebUI...', '#3b82f6');
+                
+                const imageManager = window.VirtualPhone?.imageGenerationManager;
+                if (!imageManager?.fetchSdModels) {
+                    throw new Error('生图管理器未实现 SD 模型获取功能');
+                }
+                
+                const models = await imageManager.fetchSdModels(sdUrl);
+                if (!Array.isArray(models) || models.length === 0) {
+                    setStatus('未获取到模型列表，请检查 SD WebUI 是否正常运行', '#d33');
+                    return;
+                }
+                
+                if (modelSelect) {
+                    modelSelect.innerHTML = '<option value="">选择模型</option>' + 
+                        models.map(model => {
+                            const title = String(model.title || model.model_name || '').trim();
+                            const hash = String(model.hash || '').trim();
+                            if (!title || !hash) return '';
+                            return `<option value="${this._escapeHtml(hash)}">${this._escapeHtml(title)}</option>`;
+                        }).filter(Boolean).join('');
+                }
+                
+                const savedModel = String(this.storage.get('phone-image-sd-model') || '').trim();
+                if (savedModel && modelSelect) {
+                    modelSelect.value = savedModel;
+                }
+                
+                setStatus(`已获取 ${models.length} 个模型`, '#0f9f6e');
+                this.phoneShell?.showNotification?.('模型列表刷新', `已获取 ${models.length} 个模型`, '✅');
+            } catch (err) {
+                const message = err?.message || String(err || '获取失败');
+                setStatus(`获取失败：${message}`, '#d33');
+                this.phoneShell?.showNotification?.('模型列表刷新失败', message, '❌');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                }
+            }
+        });
+
+        document.getElementById('phone-image-test-sd')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const resultEl = document.getElementById('phone-image-test-sd-result');
+            const setResult = (text, color = '#666') => {
+                if (resultEl) {
+                    resultEl.textContent = text;
+                    resultEl.style.color = color;
+                }
+            };
+            const oldText = btn?.textContent || '测试 SD 生图连接';
+            try {
+                await this.storage.set('phone-image-provider', 'sd');
+                await this.storage.set('phone-image-enabled', true);
+                await this.storage.set('phone-image-sd-url', String(document.getElementById('phone-image-sd-url')?.value || '').trim() || 'http://localhost:7860');
+                await this.storage.set('phone-image-sd-model', String(document.getElementById('phone-image-sd-model')?.value || '').trim());
+                await this.storage.set('phone-image-sd-sampler', String(document.getElementById('phone-image-sd-sampler')?.value || '').trim() || 'Euler a');
+
+                const imageManager = window.VirtualPhone?.imageGenerationManager;
+                if (!imageManager?.generate) throw new Error('生图管理器未初始化');
+
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '测试中...';
+                }
+                setResult('正在请求 Stable Diffusion...', '#10b981');
+                const result = await imageManager.generate({
+                    app: 'honey',
+                    provider: 'sd',
+                    prompt: '1girl, solo, anime illustration, beautiful eyes, looking at viewer, simple background',
+                    width: 832,
+                    height: 1216,
+                    ignoreEnabled: true
+                });
+                if (!result?.imageUrl && !result?.imageData) throw new Error('SD 未返回图片');
+                const detail = [
+                    result.width && result.height ? `${result.width}x${result.height}` : '',
+                    result.steps ? `${result.steps} steps` : '',
+                    result.sampler || ''
+                ].filter(Boolean).join(' · ');
+                setResult(`SD 连接成功，已收到图片数据${detail ? `：${detail}` : '。'}`, '#0f9f6e');
+                this.phoneShell?.showNotification?.('生图测试', detail ? `SD 连接成功 ${detail}` : 'SD 连接成功', '✅');
+            } catch (err) {
+                const message = err?.message || String(err || '测试失败');
+                setResult(`测试失败：${message}`, '#d33');
+                this.phoneShell?.showNotification?.('生图测试失败', message, '❌');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                }
+            }
         });
 
         [

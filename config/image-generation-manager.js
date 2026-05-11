@@ -246,6 +246,23 @@ export class ImageGenerationManager {
             ? 28
             : rawSteps;
 
+        let sampler;
+        let schedule;
+        if (provider === 'sd') {
+            sampler = String(overrides.sampler || this._get('phone-image-sd-sampler', 'Euler a')).trim() || 'Euler a';
+            schedule = '';
+        } else {
+            sampler = this._normalizeNovelAISampler(overrides.sampler || this._get('phone-image-novelai-sampler', 'k_euler'));
+            schedule = this._normalizeNovelAISchedule(overrides.schedule || this._get('phone-image-novelai-schedule', 'native'));
+        }
+
+        let model;
+        if (provider === 'sd') {
+            model = String(overrides.model || this._get('phone-image-sd-model', '')).trim();
+        } else {
+            model = String(overrides.model || this._get(`phone-image-${provider}-model`, '') || (provider === 'novelai' ? 'nai-diffusion-4-5-full' : legacySiliconflowModel || 'Kwai-Kolors/Kolors')).trim();
+        }
+
         return {
             enabled: overrides.enabled ?? this._getBool('phone-image-enabled', false),
             provider,
@@ -253,9 +270,10 @@ export class ImageGenerationManager {
             site: String(overrides.site || this._get('phone-image-novelai-site', 'official')).trim() || 'official',
             customUrl: String(overrides.customUrl || this._get('phone-image-novelai-url', '')).trim(),
             queueUrl: String(overrides.queueUrl || this._get('phone-image-novelai-queue-url', '')).trim(),
-            model: String(overrides.model || this._get(`phone-image-${provider}-model`, '') || (provider === 'novelai' ? 'nai-diffusion-4-5-full' : legacySiliconflowModel || 'Kwai-Kolors/Kolors')).trim(),
-            sampler: this._normalizeNovelAISampler(overrides.sampler || this._get('phone-image-novelai-sampler', 'k_euler')),
-            schedule: this._normalizeNovelAISchedule(overrides.schedule || this._get('phone-image-novelai-schedule', 'native')),
+            sdUrl: String(overrides.sdUrl || this._get('phone-image-sd-url', 'http://localhost:7860')).trim(),
+            model,
+            sampler,
+            schedule,
             width: size.width,
             height: size.height,
             steps,
@@ -273,14 +291,18 @@ export class ImageGenerationManager {
     async generate(options = {}) {
         const config = this.getConfig(options);
         if (!config.enabled && options.ignoreEnabled !== true) throw new Error('生图功能未启用');
-        if (!config.apiKey) throw new Error('缺少生图 API Key');
 
         if (config.provider === 'siliconflow') {
+            if (!config.apiKey) throw new Error('缺少生图 API Key');
             return this._generateSiliconflow(options, config);
         }
         if (config.provider === 'novelai') {
+            if (!config.apiKey) throw new Error('缺少生图 API Key');
             const novelAIOptions = await this._prepareNovelAIOptions(options);
             return this._generateNovelAI(novelAIOptions, config);
+        }
+        if (config.provider === 'sd') {
+            return this._generateStableDiffusion(options, config);
         }
         throw new Error(`暂不支持的生图服务商：${config.provider}`);
     }
@@ -1026,5 +1048,149 @@ export class ImageGenerationManager {
             imageData: imageUrl,
             imageUrl
         };
+    }
+
+    _sdModelsCache = null;
+    _sdModelsCacheTime = 0;
+    _sdModelsCacheTtl = 5 * 60 * 1000;
+
+    async fetchSdModels(baseUrl) {
+        const now = Date.now();
+        if (this._sdModelsCache && now - this._sdModelsCacheTime < this._sdModelsCacheTtl) {
+            return this._sdModelsCache;
+        }
+
+        const url = this._resolveSdApiUrl(baseUrl, '/sdapi/v1/sd-models');
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`SD模型列表获取失败 (${response.status})`);
+        }
+
+        const models = await response.json();
+        this._sdModelsCache = models;
+        this._sdModelsCacheTime = now;
+        return models;
+    }
+
+    _resolveSdApiUrl(baseUrl, path) {
+        const base = String(baseUrl || '').trim().replace(/\/+$/, '');
+        const p = String(path || '').replace(/^\/+/, '');
+        return `${base}/${p}`;
+    }
+
+    buildSdModelHashMap(models) {
+        const map = new Map();
+        for (const model of models) {
+            const name = String(model?.model_name || model?.name || '').trim();
+            const hash = String(model?.sd_model_hash || model?.hash || '').trim();
+            if (name && hash) {
+                map.set(name.toLowerCase(), hash);
+                map.set(name, hash);
+            }
+        }
+        return map;
+    }
+
+    async getSdModelHash(baseUrl, modelName) {
+        const models = await this.fetchSdModels(baseUrl);
+        const map = this.buildSdModelHashMap(models);
+        return map.get(String(modelName || '').trim()) || map.get(String(modelName || '').trim().toLowerCase()) || null;
+    }
+
+    async _generateStableDiffusion(options, config) {
+        const prompt = String(options.prompt || '').trim();
+        if (!prompt) throw new Error('缺少生图提示词');
+
+        const baseUrl = String(config.sdUrl || '').trim();
+        if (!baseUrl) throw new Error('未配置 Stable Diffusion 服务地址');
+
+        const modelName = String(config.model || '').trim();
+        const modelHash = await this.getSdModelHash(baseUrl, modelName).catch(() => null);
+
+        const width = Number(options.width || config.width);
+        const height = Number(options.height || config.height);
+        const steps = Number(options.steps || config.steps);
+        const scale = Number(options.scale ?? config.scale);
+        const seed = Number(options.seed ?? config.seed);
+        const cfgRescale = Number(options.cfgRescale ?? config.cfgRescale);
+
+        const positivePrompt = this._joinPrompt([config.fixedPrompt, prompt, config.fixedPromptEnd]);
+        const negativePrompt = this._joinPrompt([config.negativePrompt, options.negativePrompt]);
+
+        const payload = {
+            prompt: positivePrompt,
+            negative_prompt: negativePrompt,
+            width,
+            height,
+            steps,
+            cfg_scale: scale,
+            seed: seed >= 0 ? seed : -1,
+            sampler_name: config.sampler || 'Euler a',
+            batch_size: 1,
+            n_iter: 1
+        };
+
+        if (modelHash) {
+            payload.sd_model_hash = modelHash;
+        }
+        if (cfgRescale > 0) {
+            payload.cfg_rescale = cfgRescale;
+        }
+
+        const url = this._resolveSdApiUrl(baseUrl, '/sdapi/v1/txt2img');
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            signal: options.signal
+        });
+
+        const text = await response.text();
+        let result = null;
+        try { result = text ? JSON.parse(text) : null; } catch (e) { result = null; }
+
+        if (!response.ok) {
+            const msg = result?.error?.message || result?.message || text || '';
+            throw new Error(`Stable Diffusion 请求失败 (${response.status})${msg ? `: ${String(msg).slice(0, 180)}` : ''}`);
+        }
+
+        const imageData = this._extractSdImage(result);
+        if (!imageData) throw new Error('Stable Diffusion 未返回可用图片');
+
+        const imageInfo = await this._waitForImageDecode(imageData).catch((err) => {
+            throw new Error(`SD 返回图片不可用: ${err?.message || err}`);
+        });
+
+        return {
+            provider: 'sd',
+            model: modelName,
+            modelHash,
+            prompt,
+            width: imageInfo.width,
+            height: imageInfo.height,
+            requestedWidth: width,
+            requestedHeight: height,
+            steps,
+            sampler: config.sampler || 'Euler a',
+            scale,
+            seed: payload.seed,
+            imageData,
+            imageUrl: imageData
+        };
+    }
+
+    _extractSdImage(payload) {
+        const images = Array.isArray(payload?.images) ? payload.images : [];
+        for (const img of images) {
+            if (typeof img === 'string') {
+                if (img.startsWith('data:image/')) return img;
+                if (/^[A-Za-z0-9+/=\s]+$/.test(img.slice(0, 120))) {
+                    return `data:image/png;base64,${img.replace(/\s+/g, '')}`;
+                }
+            }
+        }
+        return '';
     }
 }
